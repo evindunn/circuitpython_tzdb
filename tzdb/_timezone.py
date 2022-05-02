@@ -2,7 +2,23 @@
 # SPDX-License-Identifier: MIT
 
 """
-timezone class, subclasses tzinfo
+`tzdb.timezone`
+================================================================================
+
+IANA timezones for adafruit_datetime
+
+
+* Author(s): Evin Dunn
+
+Implementation Notes
+--------------------
+
+**Software and Dependencies:**
+
+* Adafruit CircuitPython firmware for the supported boards:
+  https://circuitpython.org/downloads
+
+* Adafruit's Datetime library: https://github.com/adafruit/Adafruit_CircuitPython_DateTime
 """
 
 from collections import OrderedDict
