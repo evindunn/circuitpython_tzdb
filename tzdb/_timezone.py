@@ -60,7 +60,6 @@ class timezone(tzinfo):
     - On January 1st, the UTC offset in Chicago is -6
     - On March 13th, the UTC offset changes to -5
     - etc.
-
     """
     _TZ_DB_FILE = "_tzdb.msgpack"
 
@@ -73,6 +72,9 @@ class timezone(tzinfo):
         """
         Create a new timezone with tz_name. The timezone contains the offset data for tz_name
         in the _TZ_DB.
+
+        :param: tz_name The name of the IANA timezone to create
+        :type tz_name: str
         """
         self._tz_name = tz_name
 
@@ -93,14 +95,18 @@ class timezone(tzinfo):
     @property
     def name(self):
         """
-        The name of the timezone passed to the constructor
+        :return: The name of the timezone passed to the constructor
+        :rtype: str
         """
         return self._tz_name
 
     def utcoffset(self, dt: "datetime") -> timedelta:
         """
-        The offset from UTC in the given timezone at the given dt, as a
-        timedelta object that is positive east of UTC.
+        :param dt: The datetime to calculate the offset for
+        :type dt: adafruit_datetime.datetime
+        :return: The offset from UTC in the given timezone at the given dt, as a timedelta object
+            that is positive east of UTC.
+        :rtype: adafruit_datetime.timedelta
         """
         offset = timedelta(hours=0)
         for iso_ts, db_offset in self._tz_data.items():
@@ -112,6 +118,10 @@ class timezone(tzinfo):
     def fromutc(self, dt: "datetime") -> "datetime":
         """
         datetime in UTC -> datetime in local time
+        :param dt: The UTC datetime to convert to local time
+        :type dt: adafruit_datetime.datetime
+        :return: The UTC datetime dt in local time
+        :rtype: adafruit_datetime.datetime
         """
         # This is how you retrieve utc time on a pi pico rtc
         now_ts = time()
@@ -121,7 +131,10 @@ class timezone(tzinfo):
 
     def tzname(self, dt: "datetime") -> str:
         """
-        Return the time zone name corresponding to the datetime object dt, as a string
+        :param dt: The datetime to retrieve the timezone name for
+        :type dt: adafruit_datetime.datetime
+        :return: the time zone name corresponding to the datetime object dt, as a string
+        :rtype: str
         """
         if not isinstance(dt.tzinfo, self.__class__):
             raise ValueError(
@@ -133,6 +146,10 @@ class timezone(tzinfo):
     def _load_db(file_path: str) -> dict:
         """
         Load the msgpack timezone database from the given file_path
+        :param file_path: The path the the tzdb database file
+        :type file_path: str
+        :return: The timezone database dict
+        :rtype: dict
         """
         gc_disable()
         try:
@@ -147,6 +164,10 @@ class timezone(tzinfo):
     def _dirname(file_path: str) -> str:
         """
         Retrieve the dirname of the given file_path
+        :param file_path: The path to get the dirname from
+        :type file_path: str
+        :return: The dirname of file_path
+        :rtype: str
         """
         parts = file_path.split(sep)
         return sep.join(parts[:-1])

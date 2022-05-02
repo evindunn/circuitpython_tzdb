@@ -23,8 +23,7 @@ Implementation Notes
 """
 
 # imports
+from ._timezone import timezone
 
 __version__ = "0.0.2"
 __repo__ = "https://github.com/evindunn/CircuitPython_tzdb.git"
-
-from ._timezone import timezone
