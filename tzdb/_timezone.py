@@ -26,6 +26,7 @@ from gc import disable as gc_disable
 from gc import enable as gc_enable
 from os import sep
 from time import time
+from typing import Optional
 
 from adafruit_datetime import datetime, timedelta, tzinfo
 from msgpack import unpack as msgpack_unpack
@@ -66,7 +67,7 @@ class timezone(tzinfo):
     """
     The loaded _TZ_DB_FILE
     """
-    _TZ_DB: dict = None
+    _TZ_DB: Optional[dict] = None
 
     def __init__(self, tz_name: str):
         """

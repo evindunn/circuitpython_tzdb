@@ -4,8 +4,8 @@
 # SPDX-License-Identifier: MIT
 
 """
-This script uses python>=3.9's ZoneInfo to generate a msgpack-encoded timezone dict
-with the following format:
+This script uses python>=3.9's ZoneInfo to generate a msgpack-encoded timezone 
+dict with the following format:
 {
     "<name>": {
         "<iso_date>": <offset from utc>
@@ -27,7 +27,8 @@ Meaning that:
 - On March 13th, the UTC offset changes to -5
 - etc.
 
-Only IANA canonical timezones are included to keep the size of the database small
+Only IANA canonical timezones are included to keep the size of the database 
+small
 """
 
 from calendar import Calendar
@@ -35,7 +36,7 @@ from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime, tzinfo
 from multiprocessing import Lock
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Tuple
 from zoneinfo import ZoneInfo, available_timezones
 
 from msgpack import pack as msgpack_pack
@@ -72,11 +73,12 @@ def iteryear(
                     yield date_time.replace(hour=hour, minute=minute)
 
 
-def serialize_timezone(tz_name: str) -> dict:
+def serialize_timezone(tz_name: str) -> Tuple[str, dict]:
     """
     Serializes the timezone with the given tz_name to a dictionary, where keys
-    represent iso timestamps and values represent a change in utc offset at the timestamp.
-    If the dict is empty, the timezone is equivalent to utc all year round.
+    represent iso timestamps and values represent a change in utc offset at the 
+    timestamp. If the dict is empty, the timezone is equivalent to utc all 
+    year round.
     """
     with LOG_LOCK:
         print(f"Serializing {tz_name}...")
@@ -86,13 +88,25 @@ def serialize_timezone(tz_name: str) -> dict:
 
     timezone = ZoneInfo.no_cache(tz_name)
     jan_1 = datetime(year=utc_now.year, month=1, day=1, tzinfo=timezone)
-    utc_offset = jan_1.utcoffset().total_seconds() // 3600
+    utc_offset = jan_1.utcoffset()
+
+    if utc_offset is None:
+        raise ValueError("UTC offset is None for given tzinfo")
+
+    utc_offset = utc_offset.total_seconds() // 3600
     utc_offset_dict = {jan_1.replace(tzinfo=None).isoformat(): utc_offset}
 
     for instant in iteryear(utc_now, calendar, timezone):
-        new_utc_offset = instant.utcoffset().total_seconds() // 3600
+        new_utc_offset = instant.utcoffset()
+        if new_utc_offset is None:
+            raise ValueError(
+                "UTC offset is None for given utc_now, calendar, timezone"
+            )
+
+        new_utc_offset = new_utc_offset.total_seconds() // 3600
         if abs(new_utc_offset - utc_offset) > 0.1:
-            utc_offset_dict[instant.replace(tzinfo=None).isoformat()] = new_utc_offset
+            iso_ts = instant.replace(tzinfo=None).isoformat()
+            utc_offset_dict[iso_ts] = new_utc_offset
             utc_offset = new_utc_offset
 
     with LOG_LOCK:
