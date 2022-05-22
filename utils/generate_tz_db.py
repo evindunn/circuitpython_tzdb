@@ -40,7 +40,7 @@ from typing import Iterable, Tuple
 from zoneinfo import ZoneInfo, available_timezones
 
 from msgpack import packb as msgpack_packb
-from base64 import b64encode
+from binascii import b2a_base64
 
 
 LOG_LOCK = Lock()
@@ -143,8 +143,9 @@ for proc in processes:
 this_file = Path(__file__)
 repo_root = this_file.parent.parent
 out_file = repo_root / "tzdb" / "_tzdb.py"
+
 with open(out_file, "w") as msgpack_file:
     # json_dump(timezones, f, indent=2)
     tz_db_bytes = msgpack_packb(timezones, use_single_float=True)
-    tz_db_str = b64encode(tz_db_bytes).decode("utf-8")
+    tz_db_str = b2a_base64(tz_db_bytes).decode("utf-8").strip()
     msgpack_file.write('TZ_DB = "{}"'.format(tz_db_str))

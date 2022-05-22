@@ -21,6 +21,7 @@ Implementation Notes
 * Adafruit's Datetime library: https://github.com/adafruit/Adafruit_CircuitPython_DateTime
 """
 
+from binascii import a2b_base64
 from collections import OrderedDict
 from gc import disable as gc_disable
 from gc import enable as gc_enable
@@ -29,16 +30,16 @@ from time import time
 from typing import Optional
 
 from adafruit_datetime import datetime, timedelta, tzinfo
-from msgpack import unpack as msgpack_unpack
+from msgpack import unpackb as msgpack_unpackb
+
+from ._tzdb import TZ_DB
 
 
 class timezone(tzinfo):
     # pylint: disable=invalid-name
     """
     Subclass of tzinfo for calculating the utc offset of a given datetime
-    """
 
-    """
     The datafile that timezones will be loaded from. Timezones are stored in the dict in the
     following format:
     {
@@ -62,17 +63,14 @@ class timezone(tzinfo):
     - On March 13th, the UTC offset changes to -5
     - etc.
     """
-    _TZ_DB_FILE = "_tzdb.msgpack"
 
-    """
-    The loaded _TZ_DB_FILE
-    """
     _TZ_DB: Optional[dict] = None
+
 
     def __init__(self, tz_name: str):
         """
-        Create a new timezone with tz_name. The timezone contains the offset data for tz_name
-        in the _TZ_DB.
+        Create a new timezone with tz_name. The timezone contains the offset 
+        data for tz_name in the _TZ_DB.
 
         :param: tz_name The name of the IANA timezone to create
         :type tz_name: str
@@ -81,8 +79,7 @@ class timezone(tzinfo):
 
         # Lazy-load on creation of first timezone instance
         if timezone._TZ_DB is None:
-            db_file = sep.join([timezone._dirname(__file__), timezone._TZ_DB_FILE])
-            timezone._TZ_DB = timezone._load_db(db_file)
+            timezone._TZ_DB = timezone._load_db()
 
         try:
             sorted_kv_pairs = sorted(
@@ -144,7 +141,7 @@ class timezone(tzinfo):
         return dt.tzinfo.name
 
     @staticmethod
-    def _load_db(file_path: str) -> dict:
+    def _load_db() -> dict:
         """
         Load the msgpack timezone database from the given file_path
         :param file_path: The path the the tzdb database file
@@ -154,21 +151,7 @@ class timezone(tzinfo):
         """
         gc_disable()
         try:
-            with open(file_path, "rb") as f:
-                data = msgpack_unpack(f)
+            as_bytes = a2b_base64(TZ_DB)
+            return msgpack_unpackb(as_bytes)
         finally:
             gc_enable()
-
-        return data
-
-    @staticmethod
-    def _dirname(file_path: str) -> str:
-        """
-        Retrieve the dirname of the given file_path
-        :param file_path: The path to get the dirname from
-        :type file_path: str
-        :return: The dirname of file_path
-        :rtype: str
-        """
-        parts = file_path.split(sep)
-        return sep.join(parts[:-1])
