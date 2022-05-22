@@ -78,8 +78,8 @@ def iteryear(
 def serialize_timezone(tz_name: str) -> Tuple[str, dict]:
     """
     Serializes the timezone with the given tz_name to a dictionary, where keys
-    represent iso timestamps and values represent a change in utc offset at the 
-    timestamp. If the dict is empty, the timezone is equivalent to utc all 
+    represent iso timestamps and values represent a change in utc offset at the
+    timestamp. If the dict is empty, the timezone is equivalent to utc all
     year round.
     """
     with LOG_LOCK:
@@ -101,9 +101,7 @@ def serialize_timezone(tz_name: str) -> Tuple[str, dict]:
     for instant in iteryear(utc_now, calendar, timezone):
         new_utc_offset = instant.utcoffset()
         if new_utc_offset is None:
-            raise ValueError(
-                "UTC offset is None for given utc_now, calendar, timezone"
-            )
+            raise ValueError("UTC offset is None for given utc_now, calendar, timezone")
 
         new_utc_offset = new_utc_offset.total_seconds() // 3600
         if abs(new_utc_offset - utc_offset) > 0.1:

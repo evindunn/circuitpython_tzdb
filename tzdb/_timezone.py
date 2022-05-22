@@ -66,10 +66,9 @@ class timezone(tzinfo):
 
     _TZ_DB: Optional[dict] = None
 
-
     def __init__(self, tz_name: str):
         """
-        Create a new timezone with tz_name. The timezone contains the offset 
+        Create a new timezone with tz_name. The timezone contains the offset
         data for tz_name in the _TZ_DB.
 
         :param: tz_name The name of the IANA timezone to create

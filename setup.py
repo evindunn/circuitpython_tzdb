@@ -56,5 +56,5 @@ setup(
     ],
     # What does your project relate to?
     keywords="adafruit blinka circuitpython micropython tzdb datetime timezone",
-    packages=["tzdb"]
+    packages=["tzdb"],
 )
