@@ -39,7 +39,9 @@ from pathlib import Path
 from typing import Iterable, Tuple
 from zoneinfo import ZoneInfo, available_timezones
 
-from msgpack import pack as msgpack_pack
+from msgpack import packb as msgpack_packb
+from base64 import b64encode
+
 
 LOG_LOCK = Lock()
 
@@ -140,7 +142,9 @@ for proc in processes:
 # Write the result to file
 this_file = Path(__file__)
 repo_root = this_file.parent.parent
-out_file = repo_root / "tzdb" / "_tzdb.msgpack"
-with open(out_file, "wb") as msgpack_file:
+out_file = repo_root / "tzdb" / "_tzdb.py"
+with open(out_file, "w") as msgpack_file:
     # json_dump(timezones, f, indent=2)
-    msgpack_pack(timezones, msgpack_file, use_single_float=True)
+    tz_db_bytes = msgpack_packb(timezones, use_single_float=True)
+    tz_db_str = b64encode(tz_db_bytes).decode("utf-8")
+    msgpack_file.write('TZ_DB = "{}"'.format(tz_db_str))

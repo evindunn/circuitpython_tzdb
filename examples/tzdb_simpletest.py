@@ -7,11 +7,19 @@
 from time import time
 
 from adafruit_datetime import datetime
-from tzdb import timezone
+
+try:
+    from tzdb import timezone
+except ImportError:
+    from sys import path as sys_path
+    from os import getcwd
+    sys_path.insert(0, getcwd())
+    from tzdb import timezone
 
 
 def main():
-    # First use adafruit_ntp to fetch the current utc time & update the board's RTC
+    # First use adafruit_ntp to fetch the current utc time & update the board's 
+    # RTC
 
     utc_now = time()
     utc_now_dt = datetime.fromtimestamp(utc_now)
