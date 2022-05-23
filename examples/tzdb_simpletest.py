@@ -22,7 +22,7 @@ def main():
         "America/Chicago",
         "America/Argentina/Buenos_Aires",
         "Pacific/Guam",
-        "Asia/Tokyo"
+        "Asia/Tokyo",
     ]
 
     # First use adafruit_ntp to fetch the current utc time & update the board's

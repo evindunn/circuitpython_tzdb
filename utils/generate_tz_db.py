@@ -122,7 +122,7 @@ def serialize_timezone(out_dir: Path, tz_name: str):
 
     tz_file = lib_dir / (tz_file + ".py")
     with open(tz_file, "w", encoding="utf-8") as tz_handle:
-        tz_handle.write(f"tz_data = {utc_offset_dict}")
+        tz_handle.write(f"tz_data = {utc_offset_dict}\n")
 
     with PROC_LOCK:
         print(f"{tz_name} complete")

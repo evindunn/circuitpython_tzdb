@@ -7,6 +7,9 @@ repos:
     rev: 22.3.0
     hooks:
     - id: black
+      args: [.]
+      pass_filenames: false
+      always_run: true
 -   repo: https://github.com/fsfe/reuse-tool
     rev: v0.12.1
     hooks:

@@ -4,3 +4,4 @@
 
 [tool.black]
 target-version = ['py35']
+extend-exclude = ['tzdb/_zones/.*\.py']
