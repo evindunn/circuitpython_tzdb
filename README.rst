@@ -27,17 +27,18 @@ IANA timezones for adafruit_datetime
 Build
 =====
 
-To regenerate the timezone database file `tzdb/_tzdb.msgpack <./tzdb/_tzdb.msgpack>`_
+To regenerate the timezone database files in `tzdb/_zones <./tzdb/_zones>`_
 
 #. Create a python>=3.9 environment: ``python3.9 -m venv .venv``
 #. Activate the environment: ``source .venv/bin/activate``
 #. Install dependencies: ``pip install -r requirements.txt``
 #. And run the ``utils/generate_tz_db.py`` script: ``./utils/generate_tz_db.py``
 
-This creates a msgpack-encoded dictionary that maps names to utc offsets throughout the year
-using python3.9's `ZoneInfo <https://docs.python.org/3/library/zoneinfo.html>`_
+This creates a python file in `_zones <./tzdb/_zones>`_ for each timezone.
+These files each contain a dictionary that maps names to utc offsets throughout
+the year using python3.9's `ZoneInfo <https://docs.python.org/3/library/zoneinfo.html>`_
 
-This file is included in this repository/package and is current as of 2022-05-01
+This file is included in this repository/package and is current as of 2022-05-22
 
 See `tzdb/_timezone.py <./tzdb/_timezone.py>`_ for details on how it's used
 
@@ -110,28 +111,42 @@ Usage Example
 .. code-block:: python3
 
     #!/usr/bin/env python3
-    # SPDX-FileCopyrightText: 2017 Scott Shawcroft, written for Adafruit Industries
     # SPDX-FileCopyrightText: Copyright (c) 2022 Evin Dunn
-    #
-    # SPDX-License-Identifier: Unlicense
+    # SPDX-License-Identifier: MIT
 
     from time import time
 
     from adafruit_datetime import datetime
-    from tzdb import timezone
+
+    try:
+        from tzdb import timezone
+    except ImportError:
+        from sys import path as sys_path
+        from pathlib import Path
+
+        sys_path.insert(0, str(Path(__file__).parent.parent))
+        from tzdb import timezone
 
 
     def main():
-        # First use adafruit_ntp to fetch the current utc time & update the board's RTC
+        TARGETS = [
+            "America/Chicago",
+            "America/Argentina/Buenos_Aires",
+            "Pacific/Guam",
+            "Asia/Tokyo",
+        ]
+
+        # First use adafruit_ntp to fetch the current utc time & update the board's
+        # RTC
 
         utc_now = time()
         utc_now_dt = datetime.fromtimestamp(utc_now)
 
-        tz_chicago = timezone("America/Chicago")
-        chicago_now_dt = utc_now_dt + tz_chicago.utcoffset(utc_now_dt)
+        print("UTC: {}".format(utc_now_dt.ctime()))
 
-        print("UTC:     {}".format(utc_now_dt.ctime()))
-        print("Chicago: {}".format(chicago_now_dt.ctime()))
+        for target in TARGETS:
+            localtime = utc_now_dt + timezone(target).utcoffset(utc_now_dt)
+            print("{}: {}".format(target, localtime.ctime()))
 
 
     if __name__ == "__main__":
