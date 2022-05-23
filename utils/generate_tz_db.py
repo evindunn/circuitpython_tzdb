@@ -36,14 +36,11 @@ from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime, tzinfo
 from multiprocessing import Lock
 from pathlib import Path
-from typing import Iterable, Tuple
+from typing import Iterable
 from zoneinfo import ZoneInfo, available_timezones
 
-from msgpack import packb as msgpack_packb
-from binascii import b2a_base64
 
-
-LOG_LOCK = Lock()
+PROC_LOCK = Lock()
 
 # Target canonical timezones only to keep the output small
 TARGETS = [
@@ -75,14 +72,14 @@ def iteryear(
                     yield date_time.replace(hour=hour, minute=minute)
 
 
-def serialize_timezone(tz_name: str) -> Tuple[str, dict]:
+def serialize_timezone(out_dir: Path, tz_name: str):
     """
     Serializes the timezone with the given tz_name to a dictionary, where keys
     represent iso timestamps and values represent a change in utc offset at the
     timestamp. If the dict is empty, the timezone is equivalent to utc all
     year round.
     """
-    with LOG_LOCK:
+    with PROC_LOCK:
         print(f"Serializing {tz_name}...")
 
     utc_now = datetime.now(tz=ZoneInfo("UTC"))
@@ -109,10 +106,26 @@ def serialize_timezone(tz_name: str) -> Tuple[str, dict]:
             utc_offset_dict[iso_ts] = new_utc_offset
             utc_offset = new_utc_offset
 
-    with LOG_LOCK:
-        print(f"{tz_name} complete")
+    if "/" in tz_name:
+        path_parts = tz_name.split("/")
+        lib_dir = Path("/".join(path_parts[:-1]))
+        tz_file = path_parts[-1]
+        lib_dir = out_dir / lib_dir
+    else:
+        lib_dir = out_dir
+        tz_file = tz_name
 
-    return tz_name, utc_offset_dict
+    with PROC_LOCK:
+        if not lib_dir.exists():
+            lib_dir.mkdir()
+            (lib_dir / "__init__.py").touch()
+
+    tz_file = lib_dir / (tz_file + ".py")
+    with open(tz_file, "w") as f:
+        f.write("tz_data = {}".format(utc_offset_dict))
+
+    with PROC_LOCK:
+        print(f"{tz_name} complete")
 
 
 # Grab the list of target timezone names
@@ -123,27 +136,21 @@ for tzname in sorted(available_timezones()):
             tznames.append(tzname)
             break
 
+# Write the result to file
+this_file = Path(__file__)
+repo_root = this_file.parent.parent
+out_pkg = repo_root / "tzdb" / "_zones"
+
+if not out_pkg.exists():
+    out_pkg.mkdir()
+    (out_pkg / "__init__.py").touch()
+
 # Serialize the target timezones
 processes = []
 with ProcessPoolExecutor() as pool:
     for tzname in tznames:
-        proc = pool.submit(serialize_timezone, tzname)
+        proc = pool.submit(serialize_timezone, out_pkg, tzname)
         processes.append(proc)
 
-# Combine the target timezones into a dict, where key is the timezone name
-# and value is the dict returned by serialize_timezone()
-timezones = {}
-for proc in processes:
-    tzname, offset_lst = proc.result()
-    timezones[tzname] = offset_lst
-
-# Write the result to file
-this_file = Path(__file__)
-repo_root = this_file.parent.parent
-out_file = repo_root / "tzdb" / "_tzdb.py"
-
-with open(out_file, "w") as msgpack_file:
-    # json_dump(timezones, f, indent=2)
-    tz_db_bytes = msgpack_packb(timezones, use_single_float=True)
-    tz_db_str = b2a_base64(tz_db_bytes).decode("utf-8").strip()
-    msgpack_file.write('TZ_DB = "{}"'.format(tz_db_str))
+# Check for errors
+[proc.result() for proc in processes]

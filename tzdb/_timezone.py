@@ -30,9 +30,6 @@ from time import time
 from typing import Optional
 
 from adafruit_datetime import datetime, timedelta, tzinfo
-from msgpack import unpackb as msgpack_unpackb
-
-from ._tzdb import TZ_DB
 
 
 class timezone(tzinfo):
@@ -64,8 +61,6 @@ class timezone(tzinfo):
     - etc.
     """
 
-    _TZ_DB: Optional[dict] = None
-
     def __init__(self, tz_name: str):
         """
         Create a new timezone with tz_name. The timezone contains the offset
@@ -77,17 +72,10 @@ class timezone(tzinfo):
         self._tz_name = tz_name
 
         # Lazy-load on creation of first timezone instance
-        if timezone._TZ_DB is None:
-            timezone._TZ_DB = timezone._load_db()
-
-        try:
-            sorted_kv_pairs = sorted(
-                timezone._TZ_DB[tz_name].items(),
-                key=lambda kv_pair: datetime.fromisoformat(kv_pair[0]),
-            )
-            self._tz_data = OrderedDict(sorted_kv_pairs)
-        except KeyError as key_error:
-            raise KeyError(f"unknown timezone {tz_name}") from key_error
+        pkg = __import__(
+            "_zones." + tz_name.replace("/", "."), globals(), locals(), ["tz_data"], 1
+        )
+        self._tz_data = pkg.tz_data
 
     @property
     def name(self):
@@ -138,19 +126,3 @@ class timezone(tzinfo):
                 f"datetime.tzinfo is not an instance of {self.__class__.__name__}"
             )
         return dt.tzinfo.name
-
-    @staticmethod
-    def _load_db() -> dict:
-        """
-        Load the msgpack timezone database from the given file_path
-        :param file_path: The path the the tzdb database file
-        :type file_path: str
-        :return: The timezone database dict
-        :rtype: dict
-        """
-        gc_disable()
-        try:
-            as_bytes = a2b_base64(TZ_DB)
-            return msgpack_unpackb(as_bytes)
-        finally:
-            gc_enable()
