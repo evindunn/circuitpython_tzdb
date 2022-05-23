@@ -1,26 +1,40 @@
 #!/usr/bin/env python3
-# SPDX-FileCopyrightText: 2017 Scott Shawcroft, written for Adafruit Industries
 # SPDX-FileCopyrightText: Copyright (c) 2022 Evin Dunn
-#
-# SPDX-License-Identifier: Unlicense
+# SPDX-License-Identifier: MIT
 
 from time import time
 
 from adafruit_datetime import datetime
-from tzdb import timezone
+
+try:
+    from tzdb import timezone
+except ImportError:
+    from sys import path as sys_path
+    from pathlib import Path
+
+    sys_path.insert(0, str(Path(__file__).parent.parent))
+    from tzdb import timezone
 
 
 def main():
-    # First use adafruit_ntp to fetch the current utc time & update the board's RTC
+    TARGETS = [
+        "America/Chicago",
+        "America/Argentina/Buenos_Aires",
+        "Pacific/Guam",
+        "Asia/Tokyo",
+    ]
+
+    # First use adafruit_ntp to fetch the current utc time & update the board's
+    # RTC
 
     utc_now = time()
     utc_now_dt = datetime.fromtimestamp(utc_now)
 
-    tz_chicago = timezone("America/Chicago")
-    chicago_now_dt = utc_now_dt + tz_chicago.utcoffset(utc_now_dt)
+    print("UTC: {}".format(utc_now_dt.ctime()))
 
-    print("UTC:     {}".format(utc_now_dt.ctime()))
-    print("Chicago: {}".format(chicago_now_dt.ctime()))
+    for target in TARGETS:
+        localtime = utc_now_dt + timezone(target).utcoffset(utc_now_dt)
+        print("{}: {}".format(target, localtime.ctime()))
 
 
 if __name__ == "__main__":

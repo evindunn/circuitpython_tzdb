@@ -1,0 +1,8 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: reuse
+Upstream-Contact: Carmen Bianca Bakker <carmenbianca@fsfe.org>
+Source: https://github.com/fsfe/reuse-tool
+
+Files: tzdb/_zones/*
+Copyright: 2022 Evin Dunn
+License: CC0-1.0

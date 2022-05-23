@@ -4,8 +4,8 @@
 # SPDX-License-Identifier: MIT
 
 """
-This script uses python>=3.9's ZoneInfo to generate a msgpack-encoded timezone dict
-with the following format:
+This script uses python>=3.9's ZoneInfo to generate a msgpack-encoded timezone
+dict with the following format:
 {
     "<name>": {
         "<iso_date>": <offset from utc>
@@ -27,7 +27,8 @@ Meaning that:
 - On March 13th, the UTC offset changes to -5
 - etc.
 
-Only IANA canonical timezones are included to keep the size of the database small
+Only IANA canonical timezones are included to keep the size of the database
+small
 """
 
 from calendar import Calendar
@@ -35,12 +36,12 @@ from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime, tzinfo
 from multiprocessing import Lock
 from pathlib import Path
+from shutil import rmtree
 from typing import Iterable
 from zoneinfo import ZoneInfo, available_timezones
 
-from msgpack import pack as msgpack_pack
 
-LOG_LOCK = Lock()
+PROC_LOCK = Lock()
 
 # Target canonical timezones only to keep the output small
 TARGETS = [
@@ -72,13 +73,14 @@ def iteryear(
                     yield date_time.replace(hour=hour, minute=minute)
 
 
-def serialize_timezone(tz_name: str) -> dict:
+def serialize_timezone(out_dir: Path, tz_name: str):
     """
     Serializes the timezone with the given tz_name to a dictionary, where keys
-    represent iso timestamps and values represent a change in utc offset at the timestamp.
-    If the dict is empty, the timezone is equivalent to utc all year round.
+    represent iso timestamps and values represent a change in utc offset at the
+    timestamp. If the dict is empty, the timezone is equivalent to utc all
+    year round.
     """
-    with LOG_LOCK:
+    with PROC_LOCK:
         print(f"Serializing {tz_name}...")
 
     utc_now = datetime.now(tz=ZoneInfo("UTC"))
@@ -86,19 +88,45 @@ def serialize_timezone(tz_name: str) -> dict:
 
     timezone = ZoneInfo.no_cache(tz_name)
     jan_1 = datetime(year=utc_now.year, month=1, day=1, tzinfo=timezone)
-    utc_offset = jan_1.utcoffset().total_seconds() // 3600
+    utc_offset = jan_1.utcoffset()
+
+    if utc_offset is None:
+        raise ValueError("UTC offset is None for given tzinfo")
+
+    utc_offset = utc_offset.total_seconds() // 3600
     utc_offset_dict = {jan_1.replace(tzinfo=None).isoformat(): utc_offset}
 
     for instant in iteryear(utc_now, calendar, timezone):
-        new_utc_offset = instant.utcoffset().total_seconds() // 3600
+        new_utc_offset = instant.utcoffset()
+        if new_utc_offset is None:
+            raise ValueError("UTC offset is None for given utc_now, calendar, timezone")
+
+        new_utc_offset = new_utc_offset.total_seconds() // 3600
         if abs(new_utc_offset - utc_offset) > 0.1:
-            utc_offset_dict[instant.replace(tzinfo=None).isoformat()] = new_utc_offset
+            iso_ts = instant.replace(tzinfo=None).isoformat()
+            utc_offset_dict[iso_ts] = new_utc_offset
             utc_offset = new_utc_offset
 
-    with LOG_LOCK:
-        print(f"{tz_name} complete")
+    if "/" in tz_name:
+        path_parts = tz_name.split("/")
+        lib_dir = Path("/".join(path_parts[:-1]))
+        tz_file = path_parts[-1]
+        lib_dir = out_dir / lib_dir
+    else:
+        lib_dir = out_dir
+        tz_file = tz_name
 
-    return tz_name, utc_offset_dict
+    with PROC_LOCK:
+        if not lib_dir.exists():
+            lib_dir.mkdir()
+            (lib_dir / "__init__.py").touch()
+
+    tz_file = lib_dir / (tz_file + ".py")
+    with open(tz_file, "w", encoding="utf-8") as tz_handle:
+        tz_handle.write(f"tz_data = {utc_offset_dict}\n")
+
+    with PROC_LOCK:
+        print(f"{tz_name} complete")
 
 
 # Grab the list of target timezone names
@@ -109,24 +137,24 @@ for tzname in sorted(available_timezones()):
             tznames.append(tzname)
             break
 
+# Write the result to file
+this_file = Path(__file__)
+repo_root = this_file.parent.parent
+out_pkg = repo_root / "tzdb" / "_zones"
+
+if out_pkg.exists():
+    rmtree(out_pkg)
+
+out_pkg.mkdir()
+(out_pkg / "__init__.py").touch()
+
 # Serialize the target timezones
 processes = []
 with ProcessPoolExecutor() as pool:
     for tzname in tznames:
-        proc = pool.submit(serialize_timezone, tzname)
+        proc = pool.submit(serialize_timezone, out_pkg, tzname)
         processes.append(proc)
 
-# Combine the target timezones into a dict, where key is the timezone name
-# and value is the dict returned by serialize_timezone()
-timezones = {}
+# Check for errors
 for proc in processes:
-    tzname, offset_lst = proc.result()
-    timezones[tzname] = offset_lst
-
-# Write the result to file
-this_file = Path(__file__)
-repo_root = this_file.parent.parent
-out_file = repo_root / "tzdb" / "_tzdb.msgpack"
-with open(out_file, "wb") as msgpack_file:
-    # json_dump(timezones, f, indent=2)
-    msgpack_pack(timezones, msgpack_file, use_single_float=True)
+    proc.result()
