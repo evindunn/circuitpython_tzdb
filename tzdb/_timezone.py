@@ -21,13 +21,8 @@ Implementation Notes
 * Adafruit's Datetime library: https://github.com/adafruit/Adafruit_CircuitPython_DateTime
 """
 
-from binascii import a2b_base64
 from collections import OrderedDict
-from gc import disable as gc_disable
-from gc import enable as gc_enable
-from os import sep
 from time import time
-from typing import Optional
 
 from adafruit_datetime import datetime, timedelta, tzinfo
 
@@ -75,7 +70,11 @@ class timezone(tzinfo):
         pkg = __import__(
             "_zones." + tz_name.replace("/", "."), globals(), locals(), ["tz_data"], 1
         )
-        self._tz_data = pkg.tz_data
+        sorted_kv_pairs = sorted(
+            pkg.tz_data.items(),
+            key=lambda kv_pair: datetime.fromisoformat(kv_pair[0]),
+        )
+        self._tz_data = OrderedDict(sorted_kv_pairs)
 
     @property
     def name(self):
