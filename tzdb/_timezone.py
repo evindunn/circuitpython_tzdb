@@ -32,28 +32,24 @@ class timezone(tzinfo):
     """
     Subclass of tzinfo for calculating the utc offset of a given datetime
 
-    The datafile that timezones will be loaded from. Timezones are stored in the dict in the
-    following format:
-    {
-        "<name>": {
-            "<iso_date>": <offset from utc>
-        }
-    }
-
-    Ex:
-    {
-        "America/Chicago": {
+    A python file is generated in _zones/ for each timezone in the following 
+    format::
+        
+        tz_data = {
             "2022-01-01T00:00:00": -6.0,
             "2022-03-13T03:00:00": -5.0,
             "2022-11-06T02:00:00": -6.0,
             "2022-10-31T00:00:00": -5.0
         }
-    }
 
     Meaning that:
-    - On January 1st, the UTC offset in Chicago is -6
-    - On March 13th, the UTC offset changes to -5
-    - etc.
+
+    * On January 1st, the UTC offset is -6
+    * On March 13th, the UTC offset changes to -5
+    * etc.
+
+    One of these files is lazily imported based on the tz_name passed to the 
+    constructor
     """
 
     def __init__(self, tz_name: str):
@@ -88,8 +84,8 @@ class timezone(tzinfo):
         """
         :param dt: The datetime to calculate the offset for
         :type dt: adafruit_datetime.datetime
-        :return: The offset from UTC in the given timezone at the given dt, as a timedelta object
-            that is positive east of UTC.
+        :return: The offset from UTC in the given timezone at the given dt, as a 
+            timedelta object that is positive east of UTC.
         :rtype: adafruit_datetime.timedelta
         """
         offset = timedelta(hours=0)
@@ -102,6 +98,7 @@ class timezone(tzinfo):
     def fromutc(self, dt: "datetime") -> "datetime":
         """
         datetime in UTC -> datetime in local time
+        
         :param dt: The UTC datetime to convert to local time
         :type dt: adafruit_datetime.datetime
         :return: The UTC datetime dt in local time
