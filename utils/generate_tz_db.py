@@ -36,6 +36,7 @@ from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime, tzinfo
 from multiprocessing import Lock
 from pathlib import Path
+from shutil import rmtree
 from typing import Iterable
 from zoneinfo import ZoneInfo, available_timezones
 
@@ -141,9 +142,11 @@ this_file = Path(__file__)
 repo_root = this_file.parent.parent
 out_pkg = repo_root / "tzdb" / "_zones"
 
-if not out_pkg.exists():
-    out_pkg.mkdir()
-    (out_pkg / "__init__.py").touch()
+if out_pkg.exists():
+    rmtree(out_pkg)
+
+out_pkg.mkdir()
+(out_pkg / "__init__.py").touch()
 
 # Serialize the target timezones
 processes = []
