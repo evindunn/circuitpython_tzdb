@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 """
-This script uses python>=3.9's ZoneInfo to generate a msgpack-encoded timezone 
+This script uses python>=3.9's ZoneInfo to generate a msgpack-encoded timezone
 dict with the following format:
 {
     "<name>": {
@@ -27,7 +27,7 @@ Meaning that:
 - On March 13th, the UTC offset changes to -5
 - etc.
 
-Only IANA canonical timezones are included to keep the size of the database 
+Only IANA canonical timezones are included to keep the size of the database
 small
 """
 
@@ -121,8 +121,8 @@ def serialize_timezone(out_dir: Path, tz_name: str):
             (lib_dir / "__init__.py").touch()
 
     tz_file = lib_dir / (tz_file + ".py")
-    with open(tz_file, "w") as f:
-        f.write("tz_data = {}".format(utc_offset_dict))
+    with open(tz_file, "w", encoding="utf-8") as tz_handle:
+        tz_handle.write(f"tz_data = {utc_offset_dict}")
 
     with PROC_LOCK:
         print(f"{tz_name} complete")
@@ -153,4 +153,5 @@ with ProcessPoolExecutor() as pool:
         processes.append(proc)
 
 # Check for errors
-[proc.result() for proc in processes]
+for proc in processes:
+    proc.result()
