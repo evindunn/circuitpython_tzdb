@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.9
+#!/usr/bin/env python
 
 # SPDX-FileCopyrightText: Copyright (c) 2022 Evin Dunn
 # SPDX-License-Identifier: MIT
