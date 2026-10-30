@@ -93,7 +93,7 @@ def serialize_timezone(out_dir: Path, tz_name: str):
     if utc_offset is None:
         raise ValueError("UTC offset is None for given tzinfo")
 
-    utc_offset = utc_offset.total_seconds() // 3600
+    utc_offset = utc_offset.total_seconds() / 3600
     utc_offset_dict = {jan_1.replace(tzinfo=None).isoformat(): utc_offset}
 
     for instant in iteryear(utc_now, calendar, timezone):
@@ -101,7 +101,7 @@ def serialize_timezone(out_dir: Path, tz_name: str):
         if new_utc_offset is None:
             raise ValueError("UTC offset is None for given utc_now, calendar, timezone")
 
-        new_utc_offset = new_utc_offset.total_seconds() // 3600
+        new_utc_offset = new_utc_offset.total_seconds() / 3600
         if abs(new_utc_offset - utc_offset) > 0.1:
             iso_ts = instant.replace(tzinfo=None).isoformat()
             utc_offset_dict[iso_ts] = new_utc_offset
